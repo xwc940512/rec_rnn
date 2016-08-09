@@ -1,8 +1,8 @@
 import os
-import util
-
 from operator import itemgetter
-from contextual.reader import Reader
+from rec_rnn.util.reader import Reader
+
+from rec_rnn.util import util
 
 
 class MlReader(Reader):
@@ -21,7 +21,8 @@ class MlReader(Reader):
         test_movie_ids = MlReader._read_movie_ids(test_path)
 
         #TODO: Check & redo
-        return train_movie_ids, val_movie_ids, test_movie_ids, len(util.unique(train_movie_ids + val_movie_ids + test_movie_ids)) + 1
+        return train_movie_ids, val_movie_ids, test_movie_ids, len(
+            util.unique(train_movie_ids + val_movie_ids + test_movie_ids)) + 1
 
     def raw_data(self, data_path=None):
         self._data_path = data_path
@@ -34,7 +35,8 @@ class MlReader(Reader):
         test_ids = MlReader._read_all_ids(test_path)
 
         #TODO: Check & redo
-        return train_ids, val_ids, test_ids, len(util.unique(train_ids[0] + val_ids[0] + test_ids[0])) + 1, len(util.unique(train_ids[1] + val_ids[1] + test_ids[1])) + 1
+        return train_ids, val_ids, test_ids, len(util.unique(train_ids[0] + val_ids[0] + test_ids[0])) + 1, len(
+            util.unique(train_ids[1] + val_ids[1] + test_ids[1])) + 1
 
 
     @staticmethod

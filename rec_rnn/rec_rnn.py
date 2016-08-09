@@ -20,9 +20,8 @@ class RecRNN(object):
 
         self._initial_state = lstm_cell.zero_state(config.batch_size, tf.float32)
 
-        #self._embedded_i, self._embedded_u = self.define_input()
         self._embedding = self.define_input()
-        self._outputs, self._usi, self._final_state = self.define_output(self._initial_state)
+        self._outputs, self._final_state = self.define_output(self._initial_state)
 
         self._cost = self.define_cost()
 
@@ -34,33 +33,13 @@ class RecRNN(object):
 
     def define_input(self):
         with tf.device("/cpu:0"):
-            embedding_i = tf.get_variable("embedding_i", [self.config.item_dim, self.config.hidden_size])
-            embedded_i = tf.nn.embedding_lookup(embedding_i, self.input_i)
-
-            embedding_u = tf.get_variable("embedding_u", [self.config.user_dim, self.config.hidden_size])
-            embedded_u = tf.nn.embedding_lookup(embedding_u, self.input_u)
+            E = tf.get_variable("E", [self.config.item_dim, self.config.hidden_size])
+            embedding = tf.nn.embedding_lookup(E, self.input_i)
 
         if self.is_training and self.config.keep_prob < 1.0:
-            embedded_i = tf.nn.dropout(embedded_i, self.config.keep_prob)
-            embedded_u = tf.nn.dropout(embedded_u, self.config.keep_prob)
+            embedding = tf.nn.dropout(embedding, self.config.keep_prob)
 
-        return tf.concat(2, [embedded_i, embedded_u])
-
-    def define_output(self, state):
-        outputs = []
-        usi = []
-        with tf.variable_scope("RNN"):
-            for time_step in range(self.config.num_steps):
-                if time_step > 0:
-                    tf.get_variable_scope().reuse_variables()
-                (cell_output, state) = self.lstm_cell(self.embedding[:, time_step, :], state)
-                h, u = tf.split(1, 2, cell_output)
-                outputs.append(h)
-                usi.append(u)
-
-        return [tf.reshape(tf.concat(1, outputs), [-1, self.config.hidden_size]),
-                tf.reshape(tf.concat(1, usi), [-1, self.config.hidden_size]),
-                state]
+        return embedding
 
     def define_lstm_cell(self):
         #num_units = self.config.hidden_size * 2
@@ -70,14 +49,27 @@ class RecRNN(object):
 
         return tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * self.config.num_layers)
 
+    def define_output(self, state):
+        outputs = []
+        with tf.variable_scope("RNN"):
+            for time_step in range(self.config.num_steps):
+                if time_step > 0:
+                    tf.get_variable_scope().reuse_variables()
+                (cell_output, state) = self.lstm_cell(self.embedding[:, time_step, :], state)
+                outputs.append(cell_output)
 
-    def define_cost(self):
-        L_0 = tf.get_variable("l_0", [self.config.hidden_size, self.config.item_dim])
+        outputs = tf.reshape(tf.concat(1, outputs), [-1, self.config.hidden_size])
+
+        W = tf.get_variable("W", [self.config.hidden_size, self.config.item_dim])
         b = tf.get_variable("b", [self.config.item_dim])
 
-        self._logits = logits = tf.matmul(self.outputs + self._usi, L_0) + b
+        logits = tf.matmul(outputs, W) + b
+
+        return [logits, state]
+
+    def define_cost(self):
         loss = tf.nn.seq2seq.sequence_loss_by_example(
-            [logits],
+            [self.outputs],
             [tf.reshape(self.targets, [-1])],
             [tf.ones([self.config.batch_size * self.config.num_steps])]
         )
@@ -101,14 +93,6 @@ class RecRNN(object):
     @property
     def embedding(self):
         return self._embedding
-
-    @property
-    def embedded_i(self):
-        return self._embedded_i
-
-    @property
-    def embedded_u(self):
-        return self._embedded_u
 
     @property
     def outputs(self):

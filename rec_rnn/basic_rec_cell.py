@@ -12,7 +12,7 @@ from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.ops.rnn_cell import RNNCell
 
 
-class RecLSTMCell(RNNCell):
+class BasicRecCell(RNNCell):
     def __init__(self, num_units, forget_bias=1.0, input_size=None):
         self._num_units = num_units
         self._input_size = num_units if input_size is None else input_size

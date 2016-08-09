@@ -5,8 +5,8 @@ import unittest
 
 
 def main():
-    split_data(os.path.join('../../src/lastfm', 'userid-timestamp-artid-artname-traid-traname.tsv'))
-    #split_data(os.path.join('data_sets/src/ml-100k', 'u.data'))
+    split_data(os.path.join('../../data/lastfm', 'userid-timestamp-artid-artname-traid-traname.tsv'))
+    #split_data(os.path.join('data_sets/data/ml-100k', 'u.data'))
 
 
 def split_data(path):
@@ -26,9 +26,9 @@ def split_data(path):
 
             i += 1
 
-        _write_to_file(train, "../../src/lastfm/lastfm_train.dat")
-        _write_to_file(val, "../../src/lastfm/lastfm_val.dat")
-        _write_to_file(test, "../../src/lastfm/lastfm_test.dat")
+        _write_to_file(train, "../../data/lastfm/lastfm_train.dat")
+        _write_to_file(val, "../../data/lastfm/lastfm_val.dat")
+        _write_to_file(test, "../../data/lastfm/lastfm_test.dat")
 
 
 def _write_to_file(data, path):

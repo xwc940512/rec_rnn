@@ -7,9 +7,9 @@ import unittest
 
 import numpy as np
 import tensorflow as tf
-from data_sets.io.movielens.ml_reader import MlReader
 
 from rec_rnn.rec_rnn import RecRNN
+from rec_rnn.util.movielens.ml_reader import MlReader
 
 
 def test_network():
@@ -17,9 +17,6 @@ def test_network():
 
     raw_data = reader.raw_data(data_path)
     train_data, valid_data, test_data, item_dim, user_dim = raw_data
-
-    print(item_dim)
-    print(user_dim)
 
     config = Config()
     config.item_dim = item_dim
@@ -72,7 +69,7 @@ def run_epoch(session, model, data, eval_op, reader, verbose=False):
     state = model.initial_state.eval()
 
     for step, (x_i, x_u, y) in enumerate(reader.data_iterator(data, model.config.batch_size, model.config.num_steps)):
-        cost, state, _, logits = session.run([model.cost, model.final_state, eval_op, model._logits],
+        cost, state, _, = session.run([model.cost, model.final_state, eval_op],
                                      {model.input_i: x_i,
                                       model.input_u: x_u,
                                       model.targets: y,
@@ -89,8 +86,8 @@ def run_epoch(session, model, data, eval_op, reader, verbose=False):
 
 
 def get_setup():
-    return MlReader(), "data_sets/src/ml-100k"
-    #return LastfmReader(), "data_sets/src/lastfm"
+    return MlReader(), "../data/ml-100k"
+    #return LastfmReader(), "../data/lastfm"
 
 
 class Config(object):

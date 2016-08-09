@@ -2,10 +2,11 @@ from __future__ import division
 
 import collections
 import os
-import util
+from random import randint
 
 from contextual.reader import Reader
-from random import randint
+
+from rec_rnn import util
 
 
 class LastfmReader(Reader):
