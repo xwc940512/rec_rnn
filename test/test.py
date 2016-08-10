@@ -9,6 +9,7 @@ import numpy as np
 import tensorflow as tf
 
 from rec_rnn.rec_rnn import RecRNN
+from rec_rnn.util.lastfm.lastfm_reader import LastfmReader
 from rec_rnn.util.movielens.ml_reader import MlReader
 
 
@@ -40,7 +41,7 @@ def test_network():
 
         for i in range(config.max_max_epoch):
             training_epoch(model_training, session, train_data, config, reader, i)
-            validation_epoch(model_valid, session, valid_data, reader, i)
+            #validation_epoch(model_valid, session, valid_data, reader, i)
         validation_epoch(model_test, session, test_data, reader)
 
 
@@ -86,8 +87,8 @@ def run_epoch(session, model, data, eval_op, reader, verbose=False):
 
 
 def get_setup():
-    return MlReader(), "../data/ml-100k"
-    #return LastfmReader(), "../data/lastfm"
+    #return MlReader(), "../data/ml-100k"
+    return LastfmReader(), "../data/lastfm"
 
 
 class Config(object):
@@ -98,7 +99,7 @@ class Config(object):
     num_steps = 10
     hidden_size = 200  # = embedding_size?
     max_epoch = 4
-    max_max_epoch = 13
+    max_max_epoch = 15
     keep_prob = 1.0
     lr_decay = 0.5
     batch_size = 20

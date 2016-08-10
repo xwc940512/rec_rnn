@@ -3,8 +3,9 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.python.ops.rnn_cell import BasicLSTMCell
 
-from rec_rnn.rec_lstm_cell import RecLSTMCell
+from rec_rnn.rec_lstm_cell import RecLSTMCell, MultiRecRNNCell
 
 
 class RecRNN(object):
@@ -16,12 +17,18 @@ class RecRNN(object):
         self._input_u = tf.placeholder(tf.int32, [config.batch_size, config.num_steps])
         self._targets = tf.placeholder(tf.int32, [config.batch_size, config.num_steps])
 
-        self._lstm_cell = lstm_cell = self.define_lstm_cell()
+        self._lstm_cell = lstm_cell = self.define_basic_lstm_cell()
+        #self._lstm_cell = lstm_cell = self.define_rec_lstm_cell()
 
         self._initial_state = lstm_cell.zero_state(config.batch_size, tf.float32)
 
         self._embedding = self.define_input()
+        #self._embedding_u = self.define_user_input()
+
         self._outputs, self._final_state = self.define_output(self._initial_state)
+
+        extended_output = self.define_extended_output()
+        self._outputs = self._outputs + extended_output
 
         self._cost = self.define_cost()
 
@@ -41,13 +48,30 @@ class RecRNN(object):
 
         return embedding
 
-    def define_lstm_cell(self):
+    def define_user_input(self):
+        with tf.device("/cpu:0"):
+            E = tf.get_variable("E_u", [self.config.user_dim, self.config.hidden_size])
+            embedding = tf.nn.embedding_lookup(E, self.input_u)
+
+        if self.is_training and self.config.keep_prob < 1.0:
+            embedding = tf.nn.dropout(embedding, self.config.keep_prob)
+
+        return embedding
+
+    def define_basic_lstm_cell(self):
         #num_units = self.config.hidden_size * 2
-        lstm_cell = RecLSTMCell(self.config.hidden_size, forget_bias=0.0)
+        lstm_cell = BasicLSTMCell(self.config.hidden_size, forget_bias=0.0)
         if self.is_training and self.config.keep_prob < 1.0:
             lstm_cell = tf.nn.rnn_cell.DropoutWrapper(lstm_cell, output_keep_prob=self.config.keep_prob)
 
         return tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * self.config.num_layers)
+
+    def define_rec_lstm_cell(self):
+        lstm_cell = RecLSTMCell(self.config.hidden_size, forget_bias=0.0)
+        if self.is_training and self.config.keep_prob < 1.0:
+            lstm_cell = tf.nn.rnn_cell.DropoutWrapper(lstm_cell, output_keep_prob=self.config.keep_prob)
+
+        return MultiRecRNNCell([lstm_cell] * self.config.num_layers)
 
     def define_output(self, state):
         outputs = []
@@ -56,6 +80,7 @@ class RecRNN(object):
                 if time_step > 0:
                     tf.get_variable_scope().reuse_variables()
                 (cell_output, state) = self.lstm_cell(self.embedding[:, time_step, :], state)
+                #(cell_output, state) = self.lstm_cell(self.embedding[:, time_step, :], self._embedding_u[:, time_step, :], state)
                 outputs.append(cell_output)
 
         outputs = tf.reshape(tf.concat(1, outputs), [-1, self.config.hidden_size])
@@ -66,6 +91,20 @@ class RecRNN(object):
         logits = tf.matmul(outputs, W) + b
 
         return [logits, state]
+
+    def define_extended_output(self):
+        with tf.device("/cpu:0"):
+            E = tf.get_variable("E_u", [self.config.user_dim, self.config.hidden_size])
+            embedding = tf.nn.embedding_lookup(E, self.input_u)
+
+        user_outputs = tf.reshape(tf.concat(1, embedding), [-1, self.config.hidden_size])
+
+        W = tf.get_variable("W_u", [self.config.hidden_size, self.config.item_dim])
+        b = tf.get_variable("b_u", [self.config.item_dim])
+
+        #return tf.matmul(tf.sigmoid(user_outputs), W) + b
+
+        return tf.matmul(user_outputs, W) + b
 
     def define_cost(self):
         loss = tf.nn.seq2seq.sequence_loss_by_example(

@@ -4,9 +4,8 @@ import collections
 import os
 from random import randint
 
-from contextual.reader import Reader
-
-from rec_rnn import util
+from rec_rnn.util import util
+from rec_rnn.util.reader import Reader
 
 
 class LastfmReader(Reader):
@@ -20,7 +19,7 @@ class LastfmReader(Reader):
         test_path = os.path.join(data_path, 'lastfm_test.dat')
 
         songs, users = LastfmReader._read(train_path)
-        songs, users = LastfmReader._random_subset(songs, users, 10)
+        songs, users = LastfmReader._random_subset(songs, users, 2)
         song_ids = LastfmReader._generate_ids(songs)
         user_ids = LastfmReader._generate_ids(users)
 
